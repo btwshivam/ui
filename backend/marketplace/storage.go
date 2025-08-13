@@ -117,6 +117,11 @@ func ExtractTarGz(file io.Reader, dest string) error {
 
 		// clean and validate path
 		cleanedName := filepath.Clean(header.Name)
+
+		if cleanedName == "." {
+			continue
+		}
+
 		targetPath := filepath.Join(dest, cleanedName)
 		if !strings.HasPrefix(targetPath, absDest+string(os.PathSeparator)) {
 			return fmt.Errorf("invalid tar entry: %s", header.Name)
