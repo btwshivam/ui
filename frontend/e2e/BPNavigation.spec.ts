@@ -33,7 +33,7 @@ test.describe('Binding Policy - Navigation', () => {
     const hasCreateButton = await bpPage.isVisible(bpPage.createPolicyButton, 3000);
     const hasTable = await bpPage.isVisible(bpPage.table, 3000);
     const hasEmptyState = await bpPage.isVisible(bpPage.emptyStateTitle, 3000);
-    
+
     // At least one element should be visible
     expect(hasHeading || hasCreateButton || hasTable || hasEmptyState).toBeTruthy();
   });
@@ -48,7 +48,7 @@ test.describe('Binding Policy - Navigation', () => {
 
     // Verify URL is still correct after reload
     await expect(page).toHaveURL(/\/bp/, { timeout: 5000 });
-    
+
     // Verify page didn't crash - check for any content
     const bodyText = await page.locator('body').textContent();
     expect(bodyText).toBeTruthy();
@@ -100,5 +100,3 @@ test.describe('Binding Policy - Navigation', () => {
     expect(isFocused || true).toBeTruthy();
   });
 });
-
-

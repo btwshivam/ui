@@ -81,7 +81,9 @@ export class BindingPolicyPage extends BasePage {
     // Header elements - be flexible with heading text
     this.pageHeading = page.locator('h1, h2').first();
     // Create button - try multiple strategies to find it
-    this.createPolicyButton = page.locator('button:has-text("Create"), button:has-text("create")').first();
+    this.createPolicyButton = page
+      .locator('button:has-text("Create"), button:has-text("create")')
+      .first();
     this.viewToggle = page.locator('[role="tablist"]').first();
     this.searchInput = page.getByPlaceholder(/Search|Filter/i);
     this.filterButton = page.getByRole('button', { name: /Filter/i });
@@ -469,5 +471,3 @@ export class BindingPolicyPage extends BasePage {
     return await this.isVisible(this.errorToast, 3000);
   }
 }
-
-
