@@ -32,7 +32,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    network_mode: host
+    ports:
+      - "4000:4000"
     volumes:
       - ~/.kube:/root/.kube:ro
       - ./backend/postgresql/migrations:/app/postgresql/migrations:ro
@@ -54,11 +55,11 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-production}
       
       # Database Configuration
-      - DATABASE_URL=postgres://authuser:authpass123@127.0.0.1:5400/authdbui?sslmode=disable
+      - DATABASE_URL=postgres://authuser:authpass123@postgres:5432/authdbui?sslmode=disable
       - DB_HEALTH_TIMEOUT=${DB_HEALTH_TIMEOUT:-5s}
       
       # Redis Configuration
-      - REDIS_HOST=127.0.0.1
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_HEALTH_TIMEOUT=${REDIS_HEALTH_TIMEOUT:-3s}
       
@@ -97,6 +98,8 @@ services:
       retries: 5
       start_period: 60s
     restart: unless-stopped
+    networks:
+      - kubestellar-network
 
   postgres:
     image: postgres:15-alpine
@@ -167,7 +170,8 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: kubestellar-prometheus
-    network_mode: host
+    ports:
+      - "19090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -177,34 +181,38 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-      - '--web.listen-address=0.0.0.0:19090'
     restart: unless-stopped
+    networks:
+      - kubestellar-network
 
   # Grafana - for visualization
   grafana:
     image: grafana/grafana:latest
     container_name: kubestellar-grafana
-    network_mode: host
+    ports:
+      - "13000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
     environment:
-      - GF_DATASOURCES_DEFAULT_URL=http://localhost:19090
+      - GF_DATASOURCES_DEFAULT_URL=http://prometheus:9090
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_HTTP_PORT=13000
     depends_on:
       - prometheus
     restart: unless-stopped
+    networks:
+      - kubestellar-network
 
   # Node Exporter for system metrics (optional)
   node-exporter:
     image: prom/node-exporter:latest
     container_name: kubestellar-node-exporter
-    network_mode: host
+    ports:
+      - "9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -214,30 +222,38 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
     restart: unless-stopped
+    networks:
+      - kubestellar-network
 
   # PostgreSQL Exporter for database metrics (optional)
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: postgres-exporter
-    network_mode: host
+    ports:
+      - "9187:9187"
     environment:
-      DATA_SOURCE_NAME: "postgresql://authuser:authpass123@localhost:5400/authdbui?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://authuser:authpass123@postgres:5432/authdbui?sslmode=disable"
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - kubestellar-network
 
   # Redis Exporter for Redis metrics (optional)
   redis-exporter:
     image: oliver006/redis_exporter:latest
     container_name: redis-exporter
-    network_mode: host
+    ports:
+      - "9121:9121"
     environment:
-      REDIS_ADDR: "redis://localhost:6379"
+      REDIS_ADDR: "redis://redis:6379"
     depends_on:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - kubestellar-network
 
 volumes:
   postgres_data: {}

@@ -3,7 +3,7 @@ services:
     image: postgres:15-alpine
     container_name: auth_postgres
     environment:
-      POSTGRES_DB: authdb
+      POSTGRES_DB: authdbui
       POSTGRES_USER: authuser
       POSTGRES_PASSWORD: authpass123
     ports:
@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U authuser -d authdb"]
+      test: ["CMD-SHELL", "pg_isready -U authuser -d authdbui"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,7 +19,7 @@ services:
       - kubestellar-network
 
   redis:
-    image: '${REDIS_IMAGE:-ghcr.io/kubestellar/ui/redis:latest}'
+    image: 'redis:7-alpine'
     container_name: '${REDIS_CONTAINER_NAME:-kubestellar-redis}'
     ports:
       - '${REDIS_PORT:-6379}:6379'
@@ -38,10 +38,14 @@ services:
     ports:
       - "19090:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml/config.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
     restart: unless-stopped
     networks:
       - kubestellar-network
@@ -56,6 +60,7 @@ services:
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
     environment:
+      - GF_DATASOURCES_DEFAULT_URL=http://prometheus:9090
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
